@@ -4,7 +4,8 @@ A project to show how to use observability to make decisions.
 
 ## Motivation
 
-I used this project to show the product team and the engineering team how to use observability to make decisions.
+I used this project to show the product team how to use observability to make decisions
+and the engineering team how to implement metrics and create graphs.
 
 The tech talk has three parts:
  - How to create a infrastructure to collect data
