@@ -19,6 +19,9 @@ import { Input } from "@/components/atoms/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+import { Tracer } from "@opentelemetry/sdk-trace-web";
+import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
+import { metrics } from "@opentelemetry/api";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -29,7 +32,8 @@ const formSchema = z.object({
     message: "Password must be at least 8 characters.",
   }),
 });
-
+const meter = metrics.getMeter("frontend");
+const requestCounter = meter.createCounter("app.frontend.requests");
 const Login = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,6 +44,11 @@ const Login = () => {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    requestCounter.add(1, {
+      username: values.username,
+      password: values.password,
+    });
+
     console.log(values);
   }
 

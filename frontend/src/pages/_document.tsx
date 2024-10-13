@@ -5,11 +5,26 @@ import Document, {
   NextScript,
   DocumentContext,
 } from "next/document";
-
+import { context, propagation } from "@opentelemetry/api";
 class MyDocument extends Document {
   static async getInitialProps(ctx: DocumentContext) {
     const initialProps = await Document.getInitialProps(ctx);
-    return { ...initialProps };
+    const baggage = propagation.getBaggage(context.active());
+    const isSyntheticRequest =
+      baggage?.getEntry("synthetic_request")?.value === "true";
+
+    const otlpTracesEndpoint = `http://otel-collector:4318/v1/traces`;
+
+    const envString = `
+         window.ENV = {
+           NEXT_PUBLIC_OTEL_SERVICE_NAME: 'frontend-nextjs',
+           NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '${otlpTracesEndpoint}',
+           IS_SYNTHETIC_REQUEST: '${isSyntheticRequest}',
+         };`;
+    return {
+      ...initialProps,
+      envString,
+    };
   }
 
   render() {
