@@ -1,0 +1,69 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+processors:
+  batch:
+    timeout: 2s
+extensions:
+  basicauth:
+    client_auth:
+      username: ${env:OPENSEARCH_USERNAME}
+      password: ${env:OPENSEARCH_PASSWORD}
+  health_check:
+    endpoint: "0.0.0.0:13133"
+    path: "/health/status"
+  pprof:
+  zpages:
+exporters:
+  debug:
+    verbosity: detailed
+  opensearch/logs:
+    logs_index: ${env:OPENSEARCH_LOGS_INDEX}
+    http:
+      endpoint: ${env:OPENSEARCH_HOST}
+      auth:
+        authenticator: basicauth
+      tls:
+        insecure: ${env:OPENSEARCH_TLS_INSECURE}
+        insecure_skip_verify: ${env:OPENSEARCH_TLS_INSECURE_SKIP_VERIFY}
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 0
+
+  prometheus:
+    send_timestamps: true
+    metric_expiration: 180m
+    resource_to_telemetry_conversion:
+      enabled: true
+    endpoint: "0.0.0.0:9090"
+
+  otlp:
+    endpoint: "jaeger:4317"
+    tls:
+      insecure: true
+
+service:
+  extensions: [basicauth, health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, otlp]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, opensearch/logs]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, prometheus]
+  telemetry:
+    logs:
+      level: "debug"
+      encoding: json
